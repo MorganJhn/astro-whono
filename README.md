@@ -308,9 +308,12 @@ HTML 示例：
 子集字符集由仓库文本 + `tools/charset-base.txt`（3500 常用字）共同生成，用来降低缺字概率。
 
 重新生成字体子集：
-1. 准备源字体放入 `tools/fonts-src/`
-2. 运行 `npm run font:build`
-3. 若出现缺字，将缺失字符补到 `tools/charset-common.txt` 后重跑
+1. 安装 Python 3，并执行 `python -m pip install fonttools brotli zopfli`
+2. 确认 `pyftsubset --help` 可用；若不可用，请把 Python Scripts 目录加入 `PATH`
+3. 把源字体放到 `tools/fonts-src/`
+4. 运行 `npm run font:build`
+5. 缺字时，把字符补到 `tools/charset-base.txt` 后重新执行 `npm run font:build`
+6. `tools/charset-common.txt` 会在 `npm run font:charset` 时重生成；除非你只想重跑 `npm run font:subset`，否则不要手改它
 
 <details>
   <summary>字体文件清单（子集 + 源字体）</summary>

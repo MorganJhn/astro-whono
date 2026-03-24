@@ -17,6 +17,16 @@ export const smoke = 'ok';
 console.log(smoke);
 ```
 
+## Figure
+
+<figure class="figure">
+  <picture>
+    <source srcset="/images/archive/demo-archive-03.webp" type="image/webp" />
+    <img src="/images/archive/demo-archive-02.webp" alt="Smoke fixture standalone figure" />
+  </picture>
+  <figcaption class="figure-caption">Smoke fixture standalone figure</figcaption>
+</figure>
+
 ## Gallery
 
 <ul class="gallery">

@@ -6,6 +6,7 @@ import type {
   SiteSocialPresetId,
   ThemeSettingsEditablePayload
 } from '@/lib/theme-settings';
+import { normalizeHeroImageSrc as normalizeHeroImageSrcValue } from '@/utils/format';
 import {
   ADMIN_ARTICLE_META_DATE_LABEL_DEFAULT,
   ADMIN_HERO_IMAGE_ALT_DEFAULT,
@@ -19,7 +20,6 @@ import {
   canonicalizeAdminThemeSettings,
   isAdminHomeIntroLinkKey,
   isAdminNavId,
-  normalizeAdminHeroImageSrc,
   normalizeAdminSocialIconKey
 } from '@/lib/admin-console/shared';
 
@@ -120,10 +120,10 @@ const parseInteger = (value: string | number | null | undefined): number | null 
 
 const normalizeTrimmed = (value: unknown): string => String(value ?? '').trim();
 
-const normalizeHeroImageSrc = (value: unknown): string | null => {
+const normalizeHeroImageInput = (value: unknown): string | null => {
   const rawValue = normalizeTrimmed(value);
   if (!rawValue) return null;
-  return normalizeAdminHeroImageSrc(rawValue) ?? rawValue;
+  return normalizeHeroImageSrcValue(rawValue) ?? rawValue;
 };
 
 const normalizeHeroImageAlt = (value: unknown): string => {
@@ -429,7 +429,7 @@ export const createFormCodec = ({
         showIntroLead: Boolean(inputHomeShowIntroLead.checked),
         showIntroMore: Boolean(inputHomeShowIntroMore.checked),
         heroPresetId: inputHomeShowHero.checked ? 'default' : 'none',
-        heroImageSrc: normalizeHeroImageSrc(inputHeroImageSrc.value),
+        heroImageSrc: normalizeHeroImageInput(inputHeroImageSrc.value),
         heroImageAlt: normalizeHeroImageAlt(inputHeroImageAlt.value)
       },
       page: {

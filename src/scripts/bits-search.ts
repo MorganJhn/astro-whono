@@ -1,4 +1,10 @@
-import { createWithBase } from '../utils/format';
+import {
+  buildSearchHaystack,
+  createDebouncedAsyncRunner,
+  createJsonIndexLoader,
+  createWithBase,
+  tokenizeSearchQuery
+} from '../utils/format';
 
 const form = document.querySelector<HTMLFormElement>('[data-bits-search-form]');
 const input = document.getElementById('bits-search') as HTMLInputElement | null;
@@ -52,18 +58,11 @@ type IndexItem = {
 };
 
 const getIndexKey = (item: Pick<IndexItem, 'key' | 'slug'>) => (item.key || item.slug || '').trim();
-const getQueryTerms = (query: string) =>
-  Array.from(new Set(query.split(/\s+/).map((term) => term.trim()).filter(Boolean)));
 const getYearButtonValue = (button: HTMLButtonElement) => {
   const raw = (button.dataset.bitsYear ?? '').trim();
   if (raw === '') return null;
   const parsed = Number(raw);
   return Number.isFinite(parsed) ? parsed : null;
-};
-
-const buildHay = (item: IndexItem) => {
-  const tags = Array.isArray(item.tags) ? item.tags.join(' ') : '';
-  return `${item.title ?? ''} ${item.description ?? ''} ${tags} ${item.text ?? ''}`.toLowerCase();
 };
 
 const availableYears = new Set(
@@ -82,15 +81,12 @@ const overflowYears = new Set(
 );
 const shouldBypassIndexCache = import.meta.env.DEV;
 
-let indexPromise: Promise<IndexItem[] | null> | null = null;
-let indexCache: IndexItem[] | null = null;
 let indexHay: Map<string, string> | null = null;
-let indexFailed = false;
-let filterTimer: number | null = null;
 let filterRunId = 0;
 let activeYear: number | null = null;
 let isMoreMenuOpen = false;
 let statusTimer: number | null = null;
+const filterRunner = createDebouncedAsyncRunner(() => applyFilter(), FILTER_DEBOUNCE_MS);
 
 const getTrimmedQuery = () => (input?.value || '').trim();
 const getNormalizedQuery = () => getTrimmedQuery().toLowerCase();
@@ -419,7 +415,7 @@ const renderResults = (matchedItems: IndexItem[]) => {
   resultsListEl.innerHTML = visibleItems
     .map((item) => {
       const query = getTrimmedQuery();
-      const queryTerms = getQueryTerms(query);
+      const queryTerms = tokenizeSearchQuery(query);
       const snippet = getDisplaySnippet(item, queryTerms);
       const dateLabel = item.dateLabel?.trim() ?? '';
       const pageHint = item.page && item.page !== currentBitsPage ? `来自第 ${item.page} 页` : '';
@@ -488,25 +484,16 @@ const filterIndexItems = (index: IndexItem[], queryTerms: string[], year: number
     if (!key) return false;
     if (year !== null && item.year !== year) return false;
     const hay = indexHay?.get(key) || '';
-    return queryTerms.every((term) => hay.includes(term.toLowerCase()));
+    return queryTerms.every((term) => hay.includes(term));
   });
 
 const scheduleApplyFilter = (delay = FILTER_DEBOUNCE_MS) => {
-  if (filterTimer !== null) {
-    window.clearTimeout(filterTimer);
-  }
-  filterTimer = window.setTimeout(() => {
-    filterTimer = null;
-    void applyFilter();
-  }, delay);
+  filterRunner.schedule(delay);
 };
 
 const resetFilters = (options: { focusInput?: boolean } = {}) => {
   filterRunId += 1;
-  if (filterTimer !== null) {
-    window.clearTimeout(filterTimer);
-    filterTimer = null;
-  }
+  filterRunner.cancel();
   closeMoreMenu();
   if (input) {
     input.value = '';
@@ -550,48 +537,37 @@ const setDegradedMode = () => {
   showBrowse();
 };
 
-const loadIndex = async () => {
-  if (indexCache) return indexCache;
-  if (indexFailed) return null;
-  if (!indexPromise) {
+const indexLoader = createJsonIndexLoader<IndexItem>({
+  url: indexUrl,
+  shouldBypassCache: shouldBypassIndexCache,
+  onPending: () => {
     setStatus('正在加载索引...', { visible: false });
-    indexPromise = fetch(indexUrl, {
-      cache: shouldBypassIndexCache ? 'no-store' : 'default'
-    })
-      .then((response) => {
-        if (!response.ok) throw new Error('index fetch failed');
-        return response.json();
-      })
-      .then((data) => {
-        if (!Array.isArray(data)) throw new Error('index data invalid');
-        indexCache = data as IndexItem[];
-        indexHay = new Map(
-          indexCache
-            .map((item) => [getIndexKey(item), buildHay(item)] as const)
-            .filter(([key]) => key !== '')
-        );
-        setStatus('');
-        return indexCache;
-      })
-      .catch(() => {
-        indexFailed = true;
-        setDegradedMode();
-        return null;
-      });
+  },
+  onResolved: (data) => {
+    indexHay = new Map(
+      data
+        .map((item) => [
+          getIndexKey(item),
+          buildSearchHaystack([item.title, item.description, item.tags, item.text])
+        ] as const)
+        .filter(([key]) => key !== '')
+    );
+    setStatus('');
+  },
+  onRejected: () => {
+    setDegradedMode();
   }
-  return indexPromise;
-};
+});
+
+const loadIndex = () => indexLoader.load();
 
 const applyFilter = async (preloadedIndex: IndexItem[] | null = null) => {
   if (!input) return;
-  if (filterTimer !== null) {
-    window.clearTimeout(filterTimer);
-    filterTimer = null;
-  }
+  filterRunner.cancel();
 
   const runId = ++filterRunId;
   const rawQuery = getTrimmedQuery();
-  const queryTerms = getQueryTerms(rawQuery);
+  const queryTerms = tokenizeSearchQuery(rawQuery);
   const normalizedQuery = rawQuery.toLowerCase();
 
   if (rawQuery === '' && activeYear === null) {
@@ -704,7 +680,7 @@ yearButtons.forEach((button) => {
   button.addEventListener('click', async () => {
     const year = getYearButtonValue(button);
     if (button.dataset.bitsYear !== '' && year === null) return;
-    if (indexFailed || activeYear === year) return;
+    if (indexLoader.hasFailed() || activeYear === year) return;
 
     closeMoreMenu();
     setActiveYearState(year);
@@ -714,12 +690,12 @@ yearButtons.forEach((button) => {
 
 yearMoreTrigger?.addEventListener('click', (event) => {
   event.preventDefault();
-  if (indexFailed) return;
+  if (indexLoader.hasFailed()) return;
   setMoreMenuOpen(!isMoreMenuOpen);
 });
 
 yearMoreTrigger?.addEventListener('keydown', (event) => {
-  if (indexFailed) return;
+  if (indexLoader.hasFailed()) return;
   if (event.key === 'ArrowDown') {
     event.preventDefault();
     setMoreMenuOpen(true);
@@ -735,7 +711,7 @@ yearMoreTrigger?.addEventListener('keydown', (event) => {
 
 yearMenuButtons.forEach((button) => {
   button.addEventListener('click', async () => {
-    if (indexFailed) return;
+    if (indexLoader.hasFailed()) return;
     const year = getYearButtonValue(button);
     if (year === null || activeYear === year) {
       closeMoreMenu();
@@ -776,7 +752,7 @@ yearMenu?.addEventListener('keydown', (event) => {
 });
 
 yearSelect?.addEventListener('change', async () => {
-  if (indexFailed) return;
+  if (indexLoader.hasFailed()) return;
 
   const raw = yearSelect.value.trim();
   const year = raw ? Number(raw) : null;

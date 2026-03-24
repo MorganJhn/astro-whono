@@ -3,8 +3,8 @@ import { join } from 'node:path';
 import { defineCollection } from 'astro:content';
 import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
-import { getAdminBitsAvatarLocalFilePath, normalizeAdminBitsAvatarPath } from './lib/admin-console/shared';
 import { ESSAY_PUBLIC_SLUG_RE } from './utils/slug-rules';
+import { getBitsAvatarLocalFilePath, normalizeBitsAvatarPath } from './utils/format';
 
 const slugRule = z
   .string()
@@ -35,7 +35,7 @@ const hasProjectFile = (relativePath: string): boolean =>
 const bitsAuthorAvatar = z
   .string()
   .superRefine((value, ctx) => {
-    const normalized = normalizeAdminBitsAvatarPath(value);
+    const normalized = normalizeBitsAvatarPath(value);
     if (normalized === undefined) {
       ctx.addIssue({
         code: 'custom',
@@ -44,7 +44,7 @@ const bitsAuthorAvatar = z
       return;
     }
 
-    const localFilePath = getAdminBitsAvatarLocalFilePath(normalized);
+    const localFilePath = getBitsAvatarLocalFilePath(normalized);
     if (localFilePath && !hasProjectFile(localFilePath)) {
       ctx.addIssue({
         code: 'custom',
@@ -52,7 +52,7 @@ const bitsAuthorAvatar = z
       });
     }
   })
-  .transform((value) => normalizeAdminBitsAvatarPath(value) ?? value);
+  .transform((value) => normalizeBitsAvatarPath(value) ?? value);
 
 const bitsAuthor = z.object({
   name: z.string().optional(),

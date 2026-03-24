@@ -3,23 +3,26 @@ import BaseLayout from './BaseLayout.astro';
 import Icon from '../components/Icon.astro';
 import Lightbox from '../components/Lightbox.astro';
 import '../styles/article.css';
-import { getEssayDerivedText } from '../lib/content';
+import { getEssayDerivedText, type EssayEntry } from '../lib/content';
 import type { ArticleMetaSettings, SidebarNavId } from '../lib/theme-settings';
 import { formatISODateUtc } from '../utils/format';
 import { truncateText } from '../utils/excerpt';
 
+type ArticleNeighborLink = {
+  href: string;
+  title: string;
+};
+
 const {
   entry,
-  Content,
   prev,
   next,
   articleMetaSettings,
   visibleTags = []
 } = Astro.props as {
-  entry: any;
-  Content: any;
-  prev: any;
-  next: any;
+  entry: EssayEntry;
+  prev: ArticleNeighborLink | null;
+  next: ArticleNeighborLink | null;
   articleMetaSettings: ArticleMetaSettings;
   visibleTags?: string[];
 };
@@ -105,7 +108,7 @@ const shouldShowMetaLine = articleMetaSettings.showDate
   </div>
 
   <div class="prose">
-    <Content />
+    <slot />
   </div>
   {(prev || next) ? (
     <nav class="prev-next" aria-label="上一篇/下一篇">
@@ -141,8 +144,9 @@ const shouldShowMetaLine = articleMetaSettings.showDate
   />
 
   <script>
-    import { initArticleLightbox } from '../scripts/lightbox';
+    import { initArticleLightbox, initCodeCopyButtons } from '../scripts/lightbox';
 
+    initCodeCopyButtons();
     initArticleLightbox({
       dialogId: 'lightbox',
       containerSelector: '.prose',

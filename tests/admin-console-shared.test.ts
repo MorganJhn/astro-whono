@@ -4,11 +4,17 @@ import {
   createAdminThemeSettingsCanonicalMismatchIssues,
   getAdminNavOrderIssues,
   getAdminSocialOrderIssues,
-  normalizeAdminBitsAvatarPath,
-  normalizeAdminHeroImageSrc,
   validateAdminThemeSettings
 } from '../src/lib/admin-console/shared';
 import { getEditableThemeSettingsPayload } from '../src/lib/theme-settings';
+import {
+  buildSearchHaystack,
+  getBitsAvatarLocalFilePath,
+  getHeroImageLocalFilePath,
+  normalizeBitsAvatarPath,
+  normalizeHeroImageSrc,
+  tokenizeSearchQuery
+} from '../src/utils/format';
 
 describe('admin-console/shared', () => {
   it('reports duplicate and range issues for social orders', () => {
@@ -41,20 +47,30 @@ describe('admin-console/shared', () => {
   });
 
   it('normalizes valid hero image sources and rejects invalid local paths', () => {
-    expect(normalizeAdminHeroImageSrc('@/assets/hero/cover.webp')).toBe('src/assets/hero/cover.webp');
-    expect(normalizeAdminHeroImageSrc('public/images/hero.png')).toBe('/images/hero.png');
-    expect(normalizeAdminHeroImageSrc('https://example.com/hero.avif')).toBe('https://example.com/hero.avif');
-    expect(normalizeAdminHeroImageSrc('/images/hero.png?size=2')).toBeUndefined();
-    expect(normalizeAdminHeroImageSrc('../hero.png')).toBeUndefined();
+    expect(normalizeHeroImageSrc('@/assets/hero/cover.webp')).toBe('src/assets/hero/cover.webp');
+    expect(normalizeHeroImageSrc('public/images/hero.png')).toBe('/images/hero.png');
+    expect(normalizeHeroImageSrc('https://example.com/hero.avif')).toBe('https://example.com/hero.avif');
+    expect(normalizeHeroImageSrc('/images/hero.png?size=2')).toBeUndefined();
+    expect(normalizeHeroImageSrc('../hero.png')).toBeUndefined();
+    expect(getHeroImageLocalFilePath('src/assets/hero/cover.webp')).toBe('src/assets/hero/cover.webp');
+    expect(getHeroImageLocalFilePath('/images/hero.png')).toBe('public/images/hero.png');
   });
 
   it('normalizes bits avatar paths and rejects invalid values', () => {
-    expect(normalizeAdminBitsAvatarPath(' author/avatar.webp ')).toBe('author/avatar.webp');
-    expect(normalizeAdminBitsAvatarPath('')).toBe('');
-    expect(normalizeAdminBitsAvatarPath('/author/avatar.webp')).toBeUndefined();
-    expect(normalizeAdminBitsAvatarPath('public/author/avatar.webp')).toBeUndefined();
-    expect(normalizeAdminBitsAvatarPath('https://example.com/avatar.webp')).toBeUndefined();
-    expect(normalizeAdminBitsAvatarPath('author/avatar.webp?v=2')).toBeUndefined();
+    expect(normalizeBitsAvatarPath(' author/avatar.webp ')).toBe('author/avatar.webp');
+    expect(normalizeBitsAvatarPath('')).toBe('');
+    expect(normalizeBitsAvatarPath('/author/avatar.webp')).toBeUndefined();
+    expect(normalizeBitsAvatarPath('public/author/avatar.webp')).toBeUndefined();
+    expect(normalizeBitsAvatarPath('https://example.com/avatar.webp')).toBeUndefined();
+    expect(normalizeBitsAvatarPath('author/avatar.webp?v=2')).toBeUndefined();
+    expect(getBitsAvatarLocalFilePath('author/avatar.webp')).toBe('public/author/avatar.webp');
+  });
+
+  it('tokenizes search query and builds normalized haystack text', () => {
+    expect(tokenizeSearchQuery(' Astro   主题  astro ')).toEqual(['astro', '主题']);
+    expect(
+      buildSearchHaystack([' Title ', ' Description ', ['TagA', ' TagB '], '', null, 'Body'])
+    ).toBe('title description taga tagb body');
   });
 
   it('canonicalizes admin settings snapshots and reports contract mismatches', () => {

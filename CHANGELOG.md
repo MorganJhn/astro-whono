@@ -16,7 +16,6 @@ The format is based on Keep a Changelog, and this project aims to follow Semanti
 - 修复移动端首页留白以及文章、小记页标题和元信息显示异常的问题，优化手机端浏览体验。
 - 修复 Windows 下 `npm run check:preview-admin` 无法执行的问题。
 - 修复 Hero 图片与 Bits 头像在不同入口下校验规则不一致的问题；Theme Console、内容配置与前台展示现已保持一致。
-- 修复 Theme Console 在本地开发环境 `/admin/` 首次载入配置时的注入风险。
 - 修复 Markdown 正文中的表格在文章页展示异常的问题。
 - 补齐字体子集重建的依赖与步骤说明；缺失 `pyftsubset` 时，脚本现在会直接提示安装方式。
 

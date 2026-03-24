@@ -10,6 +10,19 @@ import type {
   SiteSocialPresetOrder,
   ThemeSettingsFileGroup
 } from '../theme-settings';
+import {
+  getBitsAvatarLocalFilePath as getAdminBitsAvatarLocalFilePath,
+  getHeroImageLocalFilePath as getAdminHeroImageLocalFilePath,
+  normalizeBitsAvatarPath as normalizeAdminBitsAvatarPath,
+  normalizeHeroImageSrc as normalizeAdminHeroImageSrc
+} from '../../utils/format';
+
+export {
+  getAdminBitsAvatarLocalFilePath,
+  getAdminHeroImageLocalFilePath,
+  normalizeAdminBitsAvatarPath,
+  normalizeAdminHeroImageSrc
+};
 
 export const ADMIN_NAV_IDS = ['essay', 'bits', 'memo', 'archive', 'about'] as const satisfies readonly SidebarNavId[];
 export const ADMIN_PAGE_IDS = ['essay', 'archive', 'bits', 'memo', 'about'] as const satisfies readonly PageId[];
@@ -125,8 +138,6 @@ export const ADMIN_FOOTER_COPYRIGHT_MAX_LENGTH = 120;
 
 export const ADMIN_LOCALE_RE = /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/;
 export const ADMIN_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const ADMIN_HERO_IMAGE_LOCAL_EXT_RE = /\.(?:avif|gif|jpe?g|png|webp)$/i;
-const ADMIN_BITS_AVATAR_LOCAL_EXT_RE = /\.(?:avif|gif|jpe?g|png|svg|webp)$/i;
 
 export const getAdminFooterStartYearMax = (): number => new Date().getFullYear();
 
@@ -241,79 +252,6 @@ export const isAdminAllowedHttpsUrl = (value: string, allowedHosts?: readonly st
   } catch {
     return false;
   }
-};
-
-const hasInvalidLocalImagePathSegment = (value: string): boolean =>
-  /(^|\/)\.\.(?:\/|$)/.test(value) || value.includes('?') || value.includes('#');
-
-const toCanonicalHeroAssetPath = (value: string): string | null => {
-  if (value.startsWith('@/assets/')) {
-    return `src/assets/${value.slice('@/assets/'.length)}`;
-  }
-
-  if (value.startsWith('assets/')) {
-    return `src/assets/${value.slice('assets/'.length)}`;
-  }
-
-  return value.startsWith('src/assets/') ? value : null;
-};
-
-export const normalizeAdminHeroImageSrc = (value: unknown): string | null | undefined => {
-  if (value === null) return null;
-  if (typeof value !== 'string') return undefined;
-
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  if (isAdminAllowedHttpsUrl(trimmed)) return new URL(trimmed).toString();
-
-  const normalized = trimmed.replace(/\\/g, '/').replace(/^\.\/+/, '');
-  if (!normalized || normalized.startsWith('//') || hasInvalidLocalImagePathSegment(normalized)) {
-    return undefined;
-  }
-
-  if (normalized.startsWith('/')) {
-    return normalized !== '/' && ADMIN_HERO_IMAGE_LOCAL_EXT_RE.test(normalized) ? normalized : undefined;
-  }
-
-  if (normalized.startsWith('public/')) {
-    const publicPath = `/${normalized.slice('public/'.length)}`;
-    return publicPath !== '/' && ADMIN_HERO_IMAGE_LOCAL_EXT_RE.test(publicPath) ? publicPath : undefined;
-  }
-
-  const assetPath = toCanonicalHeroAssetPath(normalized);
-  return assetPath && ADMIN_HERO_IMAGE_LOCAL_EXT_RE.test(assetPath) ? assetPath : undefined;
-};
-
-export const getAdminHeroImageLocalFilePath = (value: string): string | null => {
-  if (value.startsWith('src/assets/')) return value;
-  if (value.startsWith('/')) return `public${value}`;
-  return null;
-};
-
-export const normalizeAdminBitsAvatarPath = (value: unknown): string | undefined => {
-  if (typeof value !== 'string') return undefined;
-
-  const trimmed = value.trim();
-  if (!trimmed) return '';
-
-  const normalized = trimmed.replace(/\\/g, '/').replace(/^\.\/+/, '');
-  if (
-    !normalized ||
-    normalized.startsWith('/') ||
-    normalized.startsWith('//') ||
-    normalized.startsWith('public/') ||
-    /^[A-Za-z]+:\/\//.test(normalized) ||
-    hasInvalidLocalImagePathSegment(normalized)
-  ) {
-    return undefined;
-  }
-
-  return ADMIN_BITS_AVATAR_LOCAL_EXT_RE.test(normalized) ? normalized : undefined;
-};
-
-export const getAdminBitsAvatarLocalFilePath = (value: string): string | null => {
-  if (!value) return null;
-  return `public/${value}`;
 };
 
 export type AdminThemeSettingsValidationIssue = {

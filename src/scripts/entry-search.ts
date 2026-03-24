@@ -1,5 +1,11 @@
 import { getTagKeys, getTagPath, toTagKey, type TagScope } from '../lib/tags';
-import { createWithBase } from '../utils/format';
+import {
+  buildSearchHaystack,
+  createDebouncedAsyncRunner,
+  createJsonIndexLoader,
+  createWithBase,
+  tokenizeSearchQuery
+} from '../utils/format';
 
 type IndexItem = {
   slug: string;
@@ -19,8 +25,6 @@ const root = document.querySelector<HTMLElement>('[data-entry-filters]');
 const FILTER_DEBOUNCE_MS = 120;
 const HOVER_PREVIEW_CLOSE_DELAY_MS = 48;
 const HOVER_PREVIEW_MEDIA_QUERY = '(hover: hover) and (pointer: fine)';
-const getQueryTerms = (query: string) =>
-  Array.from(new Set(query.split(/\s+/).map((term) => term.trim().toLowerCase()).filter(Boolean)));
 
 if (!root) {
   // Current page does not use entry search / tags.
@@ -144,21 +148,13 @@ if (!root) {
     }
   };
 
-  const buildHay = (item: IndexItem) => {
-    const tags = Array.isArray(item.tags) ? item.tags.join(' ') : '';
-    return `${item.title ?? ''} ${item.description ?? ''} ${tags} ${item.text ?? ''}`.toLowerCase();
-  };
-
-  let indexPromise: Promise<IndexItem[] | null> | null = null;
-  let indexCache: IndexItem[] | null = null;
   let indexHay: Map<string, string> | null = null;
   let indexTagKeys: Map<string, string[]> | null = null;
-  let indexFailed = false;
-  let filterTimer: number | null = null;
   let filterRunId = 0;
   let hoverCloseTimer: number | null = null;
   let hoverPreviewActive = false;
   const hoverPreviewMedia = window.matchMedia(HOVER_PREVIEW_MEDIA_QUERY);
+  const filterRunner = createDebouncedAsyncRunner(() => applyFilter(), FILTER_DEBOUNCE_MS);
 
   const isSearchOpen = () => searchRoot?.classList.contains('is-open') ?? false;
   const supportsHoverPreview = () => hoverPreviewMedia.matches;
@@ -203,7 +199,7 @@ if (!root) {
   };
 
   const openSearchHoverPreview = () => {
-    if (!supportsHoverPreview() || indexFailed) return;
+    if (!supportsHoverPreview() || indexLoader.hasFailed()) return;
     clearHoverCloseTimer();
     if (isSearchOpen() && !hoverPreviewActive) return;
     hoverPreviewActive = true;
@@ -253,13 +249,7 @@ if (!root) {
   };
 
   const scheduleApplyFilter = (delay = FILTER_DEBOUNCE_MS) => {
-    if (filterTimer !== null) {
-      window.clearTimeout(filterTimer);
-    }
-    filterTimer = window.setTimeout(() => {
-      filterTimer = null;
-      void applyFilter();
-    }, delay);
+    filterRunner.schedule(delay);
   };
 
   const setDegradedMode = () => {
@@ -278,47 +268,35 @@ if (!root) {
     setStatus('索引加载失败，已禁用搜索');
   };
 
-  const loadIndex = async () => {
-    if (!indexUrl) return null;
-    if (indexCache) return indexCache;
-    if (indexFailed) return null;
-
-    if (!indexPromise) {
+  const indexLoader = createJsonIndexLoader<IndexItem>({
+    url: indexUrl,
+    shouldBypassCache: shouldBypassIndexCache,
+    onPending: () => {
       setStatus('正在加载索引...', { visible: false });
-      indexPromise = fetch(indexUrl, {
-        cache: shouldBypassIndexCache ? 'no-store' : 'default'
-      })
-        .then((response) => {
-          if (!response.ok) throw new Error('index fetch failed');
-          return response.json();
-        })
-        .then((data) => {
-          if (!Array.isArray(data)) throw new Error('index data invalid');
-          indexCache = data as IndexItem[];
-          indexHay = new Map(indexCache.map((item) => [item.slug, buildHay(item)]));
-          indexTagKeys = new Map(indexCache.map((item) => [item.slug, getTagKeys(item.tags)]));
-          setStatus('');
-          return indexCache;
-        })
-        .catch(() => {
-          indexFailed = true;
-          setDegradedMode();
-          return null;
-        });
+    },
+    onResolved: (data) => {
+      indexHay = new Map(
+        data.map((item) => [
+          item.slug,
+          buildSearchHaystack([item.title, item.description, item.tags, item.text])
+        ])
+      );
+      indexTagKeys = new Map(data.map((item) => [item.slug, getTagKeys(item.tags)]));
+      setStatus('');
+    },
+    onRejected: () => {
+      setDegradedMode();
     }
+  });
 
-    return indexPromise;
-  };
+  const loadIndex = () => indexLoader.load();
 
   const applyFilter = async () => {
-    if (filterTimer !== null) {
-      window.clearTimeout(filterTimer);
-      filterTimer = null;
-    }
+    filterRunner.cancel();
 
     const runId = ++filterRunId;
     const rawQuery = (input?.value || '').trim();
-    const queryTerms = getQueryTerms(rawQuery);
+    const queryTerms = tokenizeSearchQuery(rawQuery);
 
     if (queryTerms.length === 0) {
       showAllItems();
@@ -465,7 +443,7 @@ if (!root) {
     const target = event.target as Node | null;
     if (!target) return;
     if (!isSearchOpen()) return;
-    if (indexFailed) return;
+    if (indexLoader.hasFailed()) return;
     if (searchRoot?.contains(target)) return;
     if (hasSearchValue()) return;
     closeSearch();

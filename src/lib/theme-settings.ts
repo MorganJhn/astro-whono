@@ -3,6 +3,12 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { site as legacySite } from '../../site.config.mjs';
 import {
+  getBitsAvatarLocalFilePath,
+  getHeroImageLocalFilePath,
+  normalizeBitsAvatarPath,
+  normalizeHeroImageSrc
+} from '../utils/format';
+import {
   ADMIN_ARTICLE_META_DATE_LABEL_DEFAULT,
   ADMIN_ARTICLE_META_DATE_LABEL_MAX_LENGTH,
   ADMIN_HERO_IMAGE_ALT_DEFAULT,
@@ -21,19 +27,15 @@ import {
   ADMIN_SOCIAL_ORDER_MIN,
   ADMIN_SOCIAL_PRESET_IDS,
   createAdminWritableThemeSettingsGroups,
-  getAdminBitsAvatarLocalFilePath,
   getAdminNavOrderIssues,
   getAdminThemeSettingsGroupFileName,
   getAdminThemeSettingsMismatchPaths,
   getAdminSocialOrderIssues,
   ADMIN_SIDEBAR_DIVIDER_DEFAULT,
-  getAdminHeroImageLocalFilePath,
   isAdminNavOrderValue,
   isAdminSocialOrderValue,
   isAdminSidebarDividerVariant,
-  normalizeAdminBitsAvatarPath,
   normalizeAdminSocialIconKey,
-  normalizeAdminHeroImageSrc
 } from './admin-console/shared';
 
 export type SettingSource = 'new' | 'legacy' | 'default';
@@ -628,20 +630,20 @@ const asSidebarDividerVariant = (value: unknown): SidebarDividerVariant | undefi
 };
 
 const asHeroImageSrc = (value: unknown): string | null | undefined => {
-  const normalized = normalizeAdminHeroImageSrc(value);
+  const normalized = normalizeHeroImageSrc(value);
   if (normalized === undefined || normalized === null) return normalized;
 
-  const localFilePath = getAdminHeroImageLocalFilePath(normalized);
+  const localFilePath = getHeroImageLocalFilePath(normalized);
   if (!localFilePath) return normalized;
 
   return existsSync(join(process.cwd(), ...localFilePath.split('/'))) ? normalized : undefined;
 };
 
 const asBitsAvatarPath = (value: unknown): string | undefined => {
-  const normalized = normalizeAdminBitsAvatarPath(value);
+  const normalized = normalizeBitsAvatarPath(value);
   if (normalized === undefined || !normalized) return normalized;
 
-  const localFilePath = getAdminBitsAvatarLocalFilePath(normalized);
+  const localFilePath = getBitsAvatarLocalFilePath(normalized);
   if (!localFilePath) return normalized;
 
   return existsSync(join(process.cwd(), ...localFilePath.split('/'))) ? normalized : undefined;
