@@ -1,0 +1,30 @@
+paths:
+  static: public
+  uploads: public/uploads
+timezone: Asia/Jakarta
+markdown:
+  engine: commonmark
+  options:
+    gfm: true
+collections_config:
+  pages:
+    path: src/pages
+    icon: wysiwyg
+  source:
+    path: ''
+    icon: package_2
+  bits:
+    path: src/content/bits
+    icon: bia
+  data_settings:
+    path: src/data/settings
+    icon: rule_settings
+  essay:
+    path: src/content/essay
+    icon: css
+  memo:
+    path: src/content/memo
+    icon: mimo
+  test_fixtures:
+    path: src/test-fixtures
+    icon: text_fields
