@@ -68,8 +68,8 @@ const cards = await Promise.all(
 <BaseLayout title={pageTitle} description={pageDescription}>
   <div class="page-header page-header--bits">
     <div class="page-heading">
-      <h1 class="page-title">{pageTitleText}</h1>
-      {subtitleText ? <span class="page-subtitle">{subtitleText}</span> : null}
+      <h1 class="page-title" data-editable="text" data-prop="page.bits.title">{pageTitleText}</h1>
+      {subtitleText ? <span class="page-subtitle" data-editable="text" data-prop="page.bits.subtitle">{subtitleText}</span> : null}
     </div>
   </div>
 

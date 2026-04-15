@@ -31,9 +31,9 @@ const showReaderToggle = settings.ui.readingMode.showEntry;
 ---
 
 <aside class="sidebar">
-  <a class="sidebar__title" href={homeHref} aria-label={`${siteTitle} 首页`}>{siteTitle}</a>
+  <a class="sidebar__title" href={homeHref} aria-label={`${siteTitle} 首页`} data-editable="text" data-prop="shell.brandTitle">{siteTitle}</a>
 
-  <div class="sidebar__quote">
+  <div class="sidebar__quote" data-editable="text" data-prop="shell.quote">
     {quote.split('\n').map((line) => (
       <>
         {line}<br />
@@ -41,15 +41,15 @@ const showReaderToggle = settings.ui.readingMode.showEntry;
     ))}
   </div>
 
-  <ul class="nav">
+  <ul class="nav" data-editable="array" data-prop="shell.nav">
     {nav.map((item) => {
       const isActive = activeNavId
         ? item.id === activeNavId
         : pathname === item.href || (item.href !== homeHref && pathname.startsWith(item.href));
       return (
-        <li>
+        <li data-editable="array-item">
           <a href={item.href} aria-current={isActive ? 'page' : undefined}>
-            <span>{item.label}</span>
+            <span data-editable="text" data-prop="label">{item.label}</span>
             {item.ornament === ADMIN_NAV_ORNAMENT_DEFAULT ? (
               <span class="dot" aria-hidden="true"></span>
             ) : item.ornament ? (

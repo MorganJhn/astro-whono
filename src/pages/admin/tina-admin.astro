@@ -1,0 +1,34 @@
+---
+const isDev = import.meta.env.DEV;
+let TinaAdmin: any = null;
+let tinaConfig: any = null;
+if (isDev) {
+  try {
+    const tina = await import('tinacms');
+    TinaAdmin = tina.TinaAdmin;
+    tinaConfig = (await import('../../../tina/config')).default;
+  } catch {
+    TinaAdmin = null;
+  }
+}
+---
+
+<!DOCTYPE html>
+<html lang="en"> 
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Content Manager</title>
+  </head>
+  <body>
+    {isDev && TinaAdmin ? (
+      <TinaAdmin config={tinaConfig} />
+    ) : (
+      <div style="padding: 2rem; text-align: center; color: #666;">
+        <h1>Content Manager</h1>
+        <p>TinaCMS is only available in development mode.</p>
+        <p>Run <code>npm run dev</code> to use the content manager.</p>
+      </div>
+    )}
+  </body>
+</html>

@@ -24,7 +24,8 @@ const {
   rssHref,
   searchAriaLabel,
   subtitleText = null,
-  tagOptions = []
+  tagOptions = [],
+  dataProp = null
 } = Astro.props as {
   currentTag?: CurrentTagState | null;
   dialogTitleId: string;
@@ -36,6 +37,7 @@ const {
   searchAriaLabel: string;
   subtitleText?: string | null;
   tagOptions?: TagOption[];
+  dataProp?: string | null;
 };
 
 const hasTagEntry = tagOptions.length > 0;
@@ -45,7 +47,7 @@ const tagTriggerText = currentTag ? '切换标签' : '#标签';
 <div class={headerClass}>
   <div class="page-heading">
     <div class="page-title-row">
-      <h1 class="page-title">{pageTitleText}</h1>
+      <h1 class="page-title" data-editable="text" data-prop={dataProp ? `${dataProp}.title` : undefined}>{pageTitleText}</h1>
       {currentTag ? (
         <span class="entry-tag-current__pill entry-tag-current__pill--inline">
           <Icon name="tag" class="entry-tag-current__icon" size={14} />
@@ -54,7 +56,7 @@ const tagTriggerText = currentTag ? '切换标签' : '#标签';
       ) : null}
     </div>
     <span class:list={['page-subtitle', 'page-subtitle--entry-filters', currentTag && 'page-subtitle--with-current-tag']}>
-      {subtitleText ? <span class="page-subtitle__text">{subtitleText}</span> : null}
+      {subtitleText ? <span class="page-subtitle__text" data-editable="text" data-prop={dataProp ? `${dataProp}.subtitle` : undefined}>{subtitleText}</span> : null}
       {!currentTag ? <a class="page-subtitle__link page-subtitle__item" href={rssHref}>RSS</a> : null}
       {hasTagEntry ? (
         currentTag ? (

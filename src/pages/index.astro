@@ -630,9 +630,9 @@ body[data-reading="immersive"] .reader-toggle .icon-book-open {
   {
     shouldShowIntro && (
       <div class="intro intro--serif">
-        {showIntroLead && <span class="intro__lead">{introLead}</span>}
+        {showIntroLead && <span class="intro__lead" data-editable="text" data-prop="home.introLead">{introLead}</span>}
         {showIntroMore && (
-          <span class="intro__more">
+          <span class="intro__more" data-editable="text" data-prop="home.introMore">
             {introMore}
             {resolvedIntroMoreLinks.map((link, index) => (
               <>

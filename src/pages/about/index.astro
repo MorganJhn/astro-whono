@@ -56,8 +56,8 @@ const contactItems: ContactItem[] = [
 <BaseLayout title={aboutTitle} bodyClass="about-page">
   <div class="page-header page-header--about">
     <div class="page-heading">
-      <h1 class="page-title">{aboutTitle}</h1>
-      {aboutSubtitle ? <span class="page-subtitle">{aboutSubtitle}</span> : null}
+      <h1 class="page-title" data-editable="text" data-prop="page.about.title">{aboutTitle}</h1>
+      {aboutSubtitle ? <span class="page-subtitle" data-editable="text" data-prop="page.about.subtitle">{aboutSubtitle}</span> : null}
     </div>
     {
       socialItems.length ? (

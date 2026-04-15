@@ -54,8 +54,8 @@ for (const h of headings) {
   bodyClass="memo-page immersive-page"
 >
   <div class="page-header reader-exit-anchor">
-    <h1 class="page-title">{memoTitle}</h1>
-    {memoSubtitle ? <span class="page-subtitle">{memoSubtitle}</span> : null}
+    <h1 class="page-title" data-editable="text" data-prop="page.memo.title">{memoTitle}</h1>
+    {memoSubtitle ? <span class="page-subtitle" data-editable="text" data-prop="page.memo.subtitle">{memoSubtitle}</span> : null}
     <button
       id="reader-exit"
       class="icon-button reader-exit"

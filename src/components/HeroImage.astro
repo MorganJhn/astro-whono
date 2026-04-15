@@ -65,6 +65,9 @@ const resolvedImgSrc = normalizedSrc
       loading={isLCP ? 'eager' : 'lazy'}
       decoding="async"
       fetchpriority={isLCP ? 'high' : undefined}
+      data-editable="image"
+      data-prop-src="home.heroImageSrc"
+      data-prop-alt="home.heroImageAlt"
     />
   ) : (
     <Picture
