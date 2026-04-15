@@ -1,9 +1,4 @@
 #!/bin/bash
-# Upgrade npm to avoid "Exit handler never called" bug in npm 10.9.4
-npm install -g npm@11.12.1 --force 2>/dev/null
-# Export path so subsequent commands use new npm
-export PATH="$(npm config get prefix)/bin:$PATH"
-# Also set npm config to skip update checks
-npm config set audit false
-npm config set fund false
-npm config set prefer-offline true
+# Avoid npm 10.9.4 "Exit handler never called" bug by installing newer npm globally
+# The --force flag prevents interactive prompts that could hang
+npm install -g npm@11.12.1 --force --no-audit --no-fund
