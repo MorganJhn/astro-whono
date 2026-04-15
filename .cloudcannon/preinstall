@@ -1,0 +1,3 @@
+#!/bin/bash
+# Workaround for npm 10.9.4 "Exit handler never called" bug
+npm install -g npm@11.12.1
